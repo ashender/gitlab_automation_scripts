@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# Prepare parameters
+#
+# #1 - message file
+# #2 - type of commit (commit,merge,squash)
+# #3 - treeish (HEAD)
+#
+# amend or reword are represented by "commmit" and "HEAD"
+
+echo ${1}
+echo ${2}
+echo ${3}
+
+MSG_FILE="${1}"
+MSG_TMP_FILE="${MSG_FILE}.tmp"
+
+COMMIT_TYPE="${2}"
+TREEISH="${3}"
+
+
+# Ignore amend/reword
+#
+if [ ${COMMIT_TYPE} == "commit" ] && [ ${TREEISH} == "HEAD" ]; then
+	# ++++ DEBUG ++++
+	echo "DEBUG: amend/reword ignored"
+	exit 0
+fi
+
+# Ignore squash and merge commits: proceed with default file
+#
+if [ "${COMMIT_TYPE}" == "merge" ] || [ "${COMMIT_TYPE}" == "squash" ]; then
+	# ++++ DEBUG ++++
+	echo "DEBUG: squash/merge ignored"
+	exit 0
+fi
+
+NAME=$(git branch | grep '*' | sed 's/* //')
+echo "$NAME: $(cat $MSG_FILE)" > $MSG_FILE
