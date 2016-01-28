@@ -1,0 +1,59 @@
+#!/bin/bash
+
+display_help() {
+    echo "`basename $0` [-h] assignee_id target_branch -- program to create one-commit-gitlab-pullrequest from command-line"
+    echo
+    echo "where:"
+    echo "-h show this help message"
+    echo "assignee_id:    gitlab id of user you want to assign pull-request to. It can be obtained from gitlab using request: 'gitlab users'"
+    echo "target_branch:  set the upstream branch you want create pull-request to"
+    echo "Script creates a pull request with title=last_commit_message, description=https://jira.vibelab.net/jira/browse/current_branch_name."
+    echo "Request source project is hardcoded in script, so you need to find your fork gitlab id and hardcode it. You can find project_id by running 'gitlab projects' "
+    echo
+    # echo some stuff here for the -a or --add-options 
+    exit 1
+}
+
+while :
+do
+    case "$1" in
+      -h | --help)
+          display_help  # Call your function
+          exit 0
+          ;;
+      -*)
+          echo "Error: Unknown option: $1" >&2
+          ## or call function display_help
+          exit 1 
+          ;;
+      *)  # No more options
+          break
+          ;;
+    esac
+done
+
+
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "not all arguments provided"
+    display_help
+    exit 1
+fi
+
+current_branch=$(git symbolic-ref -q HEAD)
+current_branch=${current_branch##refs/heads/}
+current_branch=${current_branch:-HEAD}
+
+last_commit_message=$(git log -1 HEAD --pretty=format:%s)
+
+printf "current branch (used as ticket name in jira):\n%s\n" "$current_branch"
+printf "last commmit message (used as title for pull request):\n%s\n" "$last_commit_message"
+printf "assignee_id in gitlab (get by running \'list_users.sh| grep -i name\' script):\n%d\n" $1
+
+command="$(cat <<- EOF
+gitlab create_merge_request 260 "$last_commit_message" "{source_branch: '$current_branch', target_branch: '$2', description: 'https://jira.vibelab.net/jira/browse/$current_branch fix', target_project_id: 130, assignee_id: '$1'}"
+EOF
+)"
+
+echo $command
+eval $command
+
